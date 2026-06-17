@@ -65,7 +65,7 @@ const bars = Array.from({ length: 90 }).map((_, index) => {
     low: close - 90,
     close,
     adjClose: close,
-    volume: 1_000_000 + index * 25_000,
+    volume: index === 23 ? 5_000_000 : 1_000_000 + index * 25_000,
     source: "fixture",
   };
 });
@@ -278,6 +278,41 @@ test.beforeEach(async ({ page }) => {
       },
     });
   });
+  await page.route(/.*\/api\/news\/events.*/, async (route) => {
+    await route.fulfill({
+      json: {
+        generatedAt: "2026-06-17T01:00:00.000Z",
+        filters: {
+          ticker: "BBCA.JK",
+          limit: 12,
+          minMateriality: 0.65,
+        },
+        total: 1,
+        events: [{
+          id: "news-bbca-dividend-BBCA",
+          articleId: "bbca-dividend",
+          ticker: "BBCA",
+          eventDate: "2026-05-20",
+          chartDate: "2026-05-20",
+          title: "BBCA Bagikan Dividen Jumbo",
+          sourceName: "EmitenNews Emiten",
+          url: "https://example.com/bbca-dividend",
+          eventType: "dividend",
+          eventLabel: "Dividen",
+          sentimentLabel: "positive",
+          sentimentScore: 1,
+          relevanceScore: 0.92,
+          materialityScore: 0.86,
+          confidenceScore: 0.88,
+          return1dPct: 1.2,
+          return3dPct: 2.5,
+          return5dPct: 3.1,
+          volumeRatio: 1.6,
+          evidence: "Event date 2026-05-20; 1D +1.20%; 3D +2.50%; volume ratio 1.6.",
+        }],
+      },
+    });
+  });
   await page.route(/.*\/api\/chart.*/, async (route) => {
     chartRequestUrls.push(route.request().url());
     const url = new URL(route.request().url());
@@ -446,12 +481,20 @@ test("dashboard exposes the approved layout contract", async ({ page }) => {
   await expect(topCommandBar.getByRole("button", { name: "Recalculate" })).toBeVisible();
 
   const marketScanner = page.getByLabel("Market scanner");
+  const newsEntry = marketScanner.getByRole("link", { name: "Open news sentiment" });
+  await expect(newsEntry).toBeVisible();
+  await expect(newsEntry).toHaveAttribute("href", "/news");
   await expect(marketScanner.getByText("Watchlist", { exact: true })).toBeVisible();
   await expect(marketScanner.getByRole("button", { name: "Accumulation" })).toBeVisible();
   await expect(marketScanner.getByRole("button", { name: "Distribution" })).toBeVisible();
   await expect(marketScanner.getByRole("button", { name: "Structure" })).toBeVisible();
   await expect(marketScanner.getByRole("button", { name: "Price Volume" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Best Examples" })).toBeVisible();
+  await marketScanner.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(newsEntry).toBeVisible();
+  await expect(marketScanner.getByRole("region", { name: "Watchlist" })).toHaveCount(0);
+  await marketScanner.getByRole("button", { name: "Expand sidebar" }).click();
+  await expect(marketScanner.getByRole("region", { name: "Watchlist" })).toBeVisible();
 
   const annotationMode = page.getByRole("radiogroup", { name: "Annotation mode" });
   await expect(annotationMode).toBeVisible();
@@ -485,16 +528,46 @@ test("dashboard renders chart annotations and avoids advice wording", async ({ p
   await expect(page.getByText("SOS").first()).toBeVisible();
   await expect(page.getByText("Impulse").first()).toBeVisible();
   await expect(page.getByText("Absorption").first()).toBeVisible();
-  await expect(page.getByLabel("Chart guides")).toContainText("Invalidation SOS");
-  await expect(page.getByLabel("Chart guides")).toContainText("Fib 38.2");
+  await expect(page.getByLabel("Chart guide panel")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Show chart guides" })).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "Show chart guides" }).click();
+  await expect(page.getByRole("button", { name: "Hide chart guides" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Chart guide panel")).toContainText("Invalidation SOS");
+  await expect(page.getByLabel("Chart guide panel")).toContainText("Fib 38.2");
   await expect(page.getByLabel("Elliott wave overlay")).toHaveCount(1);
   await expect(page.getByLabel("Projection overlay")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Hide MA5 indicator" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Hide MA10 indicator" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Hide RSI indicator" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Hide AO indicator" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Indicator legend")).toContainText("MA 5");
+  await expect(page.getByLabel("Indicator legend")).toContainText("MA 10");
+  await expect(page.getByLabel("Indicator legend")).toContainText("RSI 14");
+  await expect(page.getByLabel("Indicator legend")).toContainText("Awesome Oscillator");
+  await expect(page.getByLabel("MA overlay")).toHaveCount(1);
+  await expect(page.getByLabel("RSI indicator pane")).toHaveCount(1);
+  await expect(page.getByLabel("Awesome Oscillator pane")).toHaveCount(1);
+  await page.getByRole("button", { name: "Hide MA5 indicator" }).click();
+  await expect(page.getByRole("button", { name: "Show MA5 indicator" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel("Indicator legend")).not.toContainText("MA 5");
+  await expect(page.getByLabel("Indicator legend")).toContainText("MA 10");
+  await page.getByRole("button", { name: "Show MA5 indicator" }).click();
+  await page.getByRole("button", { name: "Hide RSI indicator" }).click();
+  await expect(page.getByRole("button", { name: "Show RSI indicator" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel("RSI indicator pane")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show RSI indicator" }).click();
+  await expect(page.getByLabel("RSI indicator pane")).toHaveCount(1);
+  await page.getByRole("button", { name: "Hide AO indicator" }).click();
+  await expect(page.getByRole("button", { name: "Show AO indicator" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel("Awesome Oscillator pane")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show AO indicator" }).click();
+  await expect(page.getByLabel("Awesome Oscillator pane")).toHaveCount(1);
   await expect(page.getByLabel("Research metrics ribbon")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Time Machine" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Conflict" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Trust" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Cache" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Analog" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Analog", exact: true })).toBeVisible();
   await expect(page.getByLabel("Research cache state")).toContainText("cached");
   await expect(page.getByLabel("Data guard status")).toContainText(/ok|caution|blocked/);
   await expect(page.getByLabel("Confidence breakdown")).toContainText(/confidence/i);
@@ -502,12 +575,57 @@ test("dashboard renders chart annotations and avoids advice wording", async ({ p
   await page.getByRole("button", { name: "Enable time machine" }).click();
   await expect(page.getByLabel("Time machine as of")).toContainText("2026-");
   await expect(page.getByLabel("Time machine calculation mode")).toContainText("recalculated");
+  await expect(page.getByLabel("Time machine narrative")).toContainText("bars are visible");
   await page.getByRole("button", { name: "Disable time machine" }).click();
   await expect(page.getByLabel("Time machine calculation mode")).toContainText("filtered");
   await expect(page.getByRole("button", { name: "Hide Wyckoff markers" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Hide Elliott markers" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Hide PVA markers" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Hide Projection markers" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Hide News markers" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Show Anomaly markers" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel("Anomaly lens overlay")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show Anomaly markers" }).click();
+  await expect(page.getByRole("button", { name: "Hide Anomaly markers" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Anomaly lens overlay")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "Anomaly Lens" })).toBeVisible();
+  await page.getByRole("button", { name: /Inspect anomaly/i }).first().click();
+  await expect(page.getByLabel("Selected anomaly")).toContainText(/Volume|Range|Return/);
+  await expect(page.getByLabel("News event overlay")).toHaveCount(1);
+  await expect(page.getByLabel("Key structure events")).toContainText("BBCA Bagikan Dividen Jumbo");
+  await expect(page.getByLabel("Key structure events")).toContainText("Dividen");
+  await page.getByRole("button", { name: /Inspect news event BBCA Bagikan Dividen Jumbo/i }).click();
+  await expect(page.getByLabel("Selected news event")).toContainText("BBCA Bagikan Dividen Jumbo");
+  await expect(page.getByLabel("Selected news event")).toContainText("3D +2.50%");
+  await expect(page.getByLabel("Selected news event")).toContainText("volume 1.6x");
+  await expect(page.getByLabel("Selected news event").getByRole("link", { name: "Open news evidence" })).toHaveAttribute("href", "/news?ticker=BBCA&query=Dividen&queryMode=semantic&days=365");
+  await page.getByRole("button", { name: "Hide News markers" }).click();
+  await expect(page.getByRole("button", { name: "Show News markers" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel("News event overlay")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show News markers" }).click();
+  await expect(page.getByLabel("News event overlay")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Show volume profile" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel("Volume profile overlay")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show volume profile" }).click();
+  await expect(page.getByRole("button", { name: "Hide volume profile" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Volume profile overlay")).toContainText("POC");
+  await expect(page.getByLabel("Volume profile overlay")).toContainText("VAH");
+  await expect(page.getByLabel("Volume profile overlay")).toContainText("VAL");
+  await expect(page.getByRole("button", { name: "Show analog ghost" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel("Analog ghost overlay")).toHaveCount(0);
+  await page.getByRole("button", { name: "Show analog ghost" }).click();
+  await expect(page.getByRole("button", { name: "Hide analog ghost" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Analog ghost overlay")).toHaveCount(1);
+  await page.getByRole("button", { name: "Hide analog ghost" }).click();
+  await expect(page.getByLabel("Analog ghost overlay")).toHaveCount(0);
+  await expect(page.getByLabel("Confluence heatmap")).toContainText("Confluence Heatmap");
+  await expect(page.getByLabel("Confluence heatmap")).toContainText("News");
+  await expect(page.getByLabel("Confluence heatmap")).toContainText("PVA");
+  await page.getByLabel("Confluence heatmap").getByRole("button", { name: /Inspect confluence 2026-05-20/i }).click();
+  await expect(page.getByLabel("Selected confluence date")).toContainText("2026-05-20");
+  await expect(page.getByLabel("Selected confluence date")).toContainText("News");
+  await expect(page.getByLabel("Selected confluence date")).toContainText("Dividen");
+  await expect(page.getByLabel("Selected confluence date").getByRole("link", { name: "Open confluence news evidence" })).toHaveAttribute("href", "/news?ticker=BBCA&query=Dividen&queryMode=semantic&days=365");
   await expect(page.getByRole("button", { name: "Fit projection range" })).toHaveAttribute("aria-pressed", "false");
   await page.getByRole("button", { name: "Fit projection range" }).click();
   await expect(page.getByRole("button", { name: "Use compact projection range" })).toHaveAttribute("aria-pressed", "true");
@@ -530,11 +648,21 @@ test("dashboard renders chart annotations and avoids advice wording", async ({ p
   await page.getByRole("button", { name: "Hide Elliott markers" }).click();
   await expect(page.getByRole("button", { name: "Show Elliott markers" })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByLabel("Elliott wave overlay")).toHaveCount(0);
-  await expect(page.getByLabel("Chart guides")).not.toContainText("Fib 38.2");
+  await expect(page.getByLabel("Chart guide panel")).not.toContainText("Fib 38.2");
   await page.getByRole("tab", { name: "Explain", exact: true }).click();
   await expect(page.getByLabel("Projection status").first()).toContainText(/active|conflicted|invalidated/);
   await expect(page.getByLabel("Selected prediction explanation")).toContainText("Elliott A-B-C uses the primary impulse");
   await expect(page.getByLabel("Selected prediction explanation")).toContainText("Invalid below 8.700");
+  await expect(page.getByText("Analog Lab")).toBeVisible();
+  await expect(page.getByLabel("Analog lab")).toContainText(/similar|pending/);
+  await expect(page.getByText("Scenario Sandbox")).toBeVisible();
+  await expect(page.getByLabel("Scenario sandbox")).toContainText(/Invalidation|No rule-valid/);
+  await page.getByLabel("Scenario sandbox").getByRole("button", { name: /Explore scenario Elliott A-B-C projection/i }).click();
+  await expect(page.getByRole("complementary", { name: "Prediction inspector" })).toContainText("Elliott A-B-C projection");
+  await expect(page.getByLabel("Scenario sandbox").getByRole("button", { name: /Explore scenario Elliott A-B-C projection/i })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Topic Impact")).toBeVisible();
+  await expect(page.getByLabel("Topic impact")).toContainText("Dividen");
+  await expect(page.getByLabel("Topic impact").getByRole("link", { name: "Open topic news evidence Dividen" })).toHaveAttribute("href", "/news?ticker=BBCA&query=Dividen&queryMode=semantic&days=365");
   await page.getByLabel("Prediction inspector").getByRole("tab", { name: "PVA" }).click();
   await expect(page.getByText("Price Volume Analysis")).toBeVisible();
   await expect(page.getByText("Effort/result absorption")).toBeVisible();
@@ -646,4 +774,41 @@ test("dashboard range selector compacts cached OHLC without refetching sliced ba
     page.getByRole("button", { name: "Weekly" }).click(),
   ]);
   await expect(page.getByRole("button", { name: "1W" })).toHaveClass(/text-teal-700/);
+});
+
+test("dashboard opens the symbol and timeframe requested by the route query", async ({ page }) => {
+  const initialChartRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === "/api/chart" && url.searchParams.get("timeframe") === "1w";
+  });
+
+  await page.goto("/?symbol=BMRI.JK&timeframe=1w");
+
+  const initialRequest = new URL((await initialChartRequest).url());
+  expect(initialRequest.searchParams.get("symbol")).toBe("BMRI.JK");
+  expect(initialRequest.searchParams.get("timeframe")).toBe("1w");
+  await expect(page.getByText("BMRI.JK").first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open BMRI news evidence" })).toHaveAttribute("href", "/news?ticker=BMRI&timeframe=1w");
+  await expect(page.getByRole("button", { name: "Weekly" })).toHaveClass(/bg-teal-700/);
+});
+
+test("dashboard opens the route as-of date in time machine context", async ({ page }) => {
+  const hydrationErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && message.text().includes("Hydration failed")) {
+      hydrationErrors.push(message.text());
+    }
+  });
+  const initialChartRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === "/api/chart" && url.searchParams.get("timeframe") === "1d";
+  });
+
+  await page.goto("/?symbol=BBCA.JK&asOf=2026-05-20");
+
+  const initialRequest = new URL((await initialChartRequest).url());
+  expect(initialRequest.searchParams.get("symbol")).toBe("BBCA.JK");
+  await expect(page.getByRole("button", { name: "Disable time machine" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Time machine as of")).toContainText("2026-05-20");
+  expect(hydrationErrors).toEqual([]);
 });

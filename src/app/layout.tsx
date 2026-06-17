@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IDX Structure Screener",
-  description: "Private IDX Wyckoff and Elliott chart annotation workstation",
+  title: "Nexa Quant | IDX Structure Screener",
+  description: "Evidence-first IDX structure, Wyckoff, Elliott, PVA, and news sentiment workstation.",
 };
 
 export default function RootLayout({

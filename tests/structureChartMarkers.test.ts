@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { buildElliottWaveLines, buildProjectionLines, buildStructureMarkers } from "@/components/dashboard/StructureChart";
+import { buildAnalogGhostLines, buildAnomalyMarkers, buildElliottWaveLines, buildNewsEventMarkers, buildProjectionLines, buildStructureMarkers, buildTechnicalIndicatorSeries, resolveSelectableMarkerId } from "@/components/dashboard/StructureChart";
 import type { Bar, ChartAnnotation } from "@/lib/market/types";
+import type { HistoricalAnalogMatch } from "@/lib/research/historicalAnalog";
 
 const IMPORTANT_WYCKOFF_EVENTS = [
   "PS",
@@ -113,6 +114,143 @@ describe("StructureChart marker mapping", () => {
       }),
     ]);
     expect(hidden).toEqual([]);
+  });
+
+  it("maps material news events to an independent chart marker layer", () => {
+    const bars = Array.from({ length: 8 }, (_, index) => bar(index));
+    const markers = buildNewsEventMarkers([
+      {
+        id: "news-a1-BBCA",
+        articleId: "a1",
+        ticker: "BBCA",
+        eventDate: bars[3].date,
+        chartDate: bars[3].date,
+        title: "BBCA bagi dividen",
+        sourceName: "EmitenNews Emiten",
+        url: "https://example.com/bbca",
+        eventType: "dividend",
+        eventLabel: "Dividen",
+        sentimentLabel: "positive",
+        sentimentScore: 1,
+        relevanceScore: 0.9,
+        materialityScore: 0.86,
+        confidenceScore: 0.88,
+        return1dPct: 1.2,
+        return3dPct: 2.5,
+        return5dPct: 3.1,
+        volumeRatio: 1.6,
+        evidence: "Event date 2026-01-04; 3D return +2.50%; volume ratio 1.6.",
+      },
+    ], bars, true);
+
+    expect(markers).toEqual([
+      expect.objectContaining({
+        id: "news-a1-BBCA",
+        time: bars[3].date,
+        position: "aboveBar",
+        shape: "circle",
+        text: "Dividen",
+        color: "#059669",
+      }),
+    ]);
+    expect(buildNewsEventMarkers(markersFixture(bars), bars, false)).toEqual([]);
+  });
+
+  it("builds technical indicator series so enabled chart panes have runtime data", () => {
+    const bars = Array.from({ length: 40 }, (_, index) => bar(index));
+
+    const series = buildTechnicalIndicatorSeries(bars, { ma5: true, ma10: true, rsi: true, ao: true });
+
+    expect(series.movingAverages.map((line) => line.key)).toEqual(["ma-5", "ma-10"]);
+    expect(series.rsi).toEqual(expect.objectContaining({ key: "rsi-14", title: "RSI 14" }));
+    expect(series.awesomeOscillator).toEqual(expect.objectContaining({ key: "ao-5-34", title: "Awesome Oscillator" }));
+    expect(series.awesomeOscillator?.data[0]).toEqual(expect.objectContaining({ color: expect.any(String) }));
+  });
+
+  it("maps anomaly lens events to a selectable marker layer", () => {
+    const bars = Array.from({ length: 8 }, (_, index) => bar(index));
+    const markers = buildAnomalyMarkers([
+      {
+        id: "anomaly-2026-01-04",
+        date: bars[3].date,
+        score: 0.76,
+        labels: ["Volume", "Range"],
+        evidence: ["volume 2.5x local average"],
+      },
+    ], bars, true);
+
+    expect(markers).toEqual([
+      expect.objectContaining({
+        id: "anomaly-2026-01-04",
+        time: bars[3].date,
+        shape: "arrowDown",
+        text: "Volume/Range",
+      }),
+    ]);
+  });
+
+  it("resolves only news and anomaly marker ids as selectable dashboard evidence", () => {
+    expect(resolveSelectableMarkerId("news-a1-BBCA")).toBe("news-a1-BBCA");
+    expect(resolveSelectableMarkerId("anomaly-2026-01-04")).toBe("anomaly-2026-01-04");
+    expect(resolveSelectableMarkerId("wyckoff-SOS-2026-01-04")).toBeNull();
+    expect(resolveSelectableMarkerId(undefined)).toBeNull();
+  });
+
+  it("projects the primary historical analog path onto the latest chart window as a ghost line", () => {
+    const bars = Array.from({ length: 10 }, (_, index) => bar(index));
+    const lines = buildAnalogGhostLines([
+      {
+        startDate: bars[1].date,
+        endDate: bars[3].date,
+        similarity: 0.84,
+        forwardReturnPct: 3.2,
+        evidence: ["fixture analog"],
+      },
+    ], bars, true);
+
+    expect(lines).toEqual([
+      expect.objectContaining({
+        key: "analog-ghost-2026-01-02-2026-01-04",
+        title: "Analog ghost 84.0%",
+        data: [
+          { time: bars[7].date, value: bars[7].close },
+          { time: bars[8].date, value: expect.any(Number) },
+          { time: bars[9].date, value: expect.any(Number) },
+        ],
+      }),
+    ]);
+    expect(lines[0].data[2].value).toBeGreaterThan(lines[0].data[0].value);
+    expect(buildAnalogGhostLines(linesFixture(), bars, false)).toEqual([]);
+  });
+
+  it("builds technical indicator overlays only for enabled readable layers", () => {
+    const bars = Array.from({ length: 40 }, (_, index) => bar(index));
+    const indicators = buildTechnicalIndicatorSeries(bars, {
+      ma5: true,
+      ma10: false,
+      rsi: true,
+      ao: true,
+    });
+
+    expect(indicators.movingAverages).toHaveLength(1);
+    expect(indicators.movingAverages[0]).toMatchObject({
+      key: "ma-5",
+      title: "MA 5",
+    });
+    expect(indicators.movingAverages[0].data.slice(0, 2)).toEqual([
+      { time: bars[4].date, value: 103 },
+      { time: bars[5].date, value: 104 },
+    ]);
+    expect(indicators.rsi).toMatchObject({
+      key: "rsi-14",
+      title: "RSI 14",
+    });
+    expect(indicators.rsi?.data[0]).toMatchObject({ time: bars[14].date, value: 100 });
+    expect(indicators.awesomeOscillator).toMatchObject({
+      key: "ao-5-34",
+      title: "Awesome Oscillator",
+    });
+    expect(indicators.awesomeOscillator?.data[0]).toMatchObject({ time: bars[33].date, color: "rgba(15, 159, 143, 0.72)" });
   });
 
   it("builds Elliott wave line paths and per-pivot labels from structured wave metadata", () => {
@@ -289,3 +427,38 @@ describe("StructureChart marker mapping", () => {
     expect(buildProjectionLines([impulse, fib], bars, { wyckoff: true, elliott: true, projection: false })).toEqual([]);
   });
 });
+
+function markersFixture(bars: Bar[]) {
+  return [{
+    id: "news-a2-BBCA",
+    articleId: "a2",
+    ticker: "BBCA",
+    eventDate: bars[4].date,
+    chartDate: bars[4].date,
+    title: "BBCA update",
+    sourceName: "fixture",
+    url: "https://example.com/bbca-update",
+    eventType: "issuer_update",
+    eventLabel: "Update Emiten",
+    sentimentLabel: "neutral" as const,
+    sentimentScore: 0,
+    relevanceScore: 0.7,
+    materialityScore: 0.7,
+    confidenceScore: 0.7,
+    return1dPct: null,
+    return3dPct: null,
+    return5dPct: null,
+    volumeRatio: null,
+    evidence: "fixture",
+  }];
+}
+
+function linesFixture(): HistoricalAnalogMatch[] {
+  return [{
+    startDate: "2026-01-02",
+    endDate: "2026-01-04",
+    similarity: 0.84,
+    forwardReturnPct: 3.2,
+    evidence: ["fixture analog"],
+  }];
+}

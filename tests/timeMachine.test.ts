@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { detectWyckoff } from "@/lib/analysis/wyckoffEngine";
 import {
+  buildTimeMachineNarrative,
   buildRecalculatedTimeMachineSnapshot,
   buildTimeMachineSnapshot,
 } from "@/lib/research/timeMachine";
@@ -176,5 +177,22 @@ describe("timeMachine", () => {
     const snapshot = buildTimeMachineSnapshot(bars, [], 1);
 
     expect(snapshot.calculationMode).toBe("filtered");
+  });
+
+  it("builds an evidence narrative for the current time machine cursor", () => {
+    const bars = Array.from({ length: 4 }, (_, index) => bar(index));
+    const snapshot = buildTimeMachineSnapshot(bars, [
+      annotation("spring", "2026-01-02"),
+      annotation("future", "2026-01-04"),
+    ], 2);
+
+    const narrative = buildTimeMachineNarrative(snapshot);
+
+    expect(narrative).toEqual([
+      "As of 2026-01-03, 3 bars are visible in filtered mode.",
+      "1 active structure events are visible; 1 future annotations remain hidden.",
+      "Latest evidence: spring.",
+    ]);
+    expect(narrative.join(" ")).not.toMatch(/\b(?:buy|sell)\b/i);
   });
 });

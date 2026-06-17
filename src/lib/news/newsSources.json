@@ -1,0 +1,113 @@
+[
+  {
+    "id": "cnbc-market",
+    "name": "CNBC Indonesia Market",
+    "category": "market",
+    "url": "https://www.cnbcindonesia.com/market/rss",
+    "parser": "rss"
+  },
+  {
+    "id": "antara-ekonomi",
+    "name": "Antara Ekonomi",
+    "category": "economy",
+    "url": "https://www.antaranews.com/rss/ekonomi.xml",
+    "parser": "rss"
+  },
+  {
+    "id": "idx-channel",
+    "name": "IDX Channel",
+    "category": "market",
+    "url": "https://www.idxchannel.com/rss",
+    "parser": "rss"
+  },
+  {
+    "id": "idx-official-disclosure",
+    "name": "IDX Official Disclosure",
+    "category": "disclosure",
+    "url": "https://www.idx.co.id/primary/ListedCompany/GetAnnouncement?emitenType=s&indexFrom=1&pageSize=50",
+    "parser": "idx-disclosure",
+    "requiresKeywordMatch": false,
+    "userAgent": "Mozilla/5.0 (compatible; NexaQuantNewsBot/0.1; +local research)"
+  },
+  {
+    "id": "kontan-investasi",
+    "name": "Kontan Investasi",
+    "category": "market",
+    "url": "https://investasi.kontan.co.id/rss",
+    "parser": "rss"
+  },
+  {
+    "id": "katadata-finansial",
+    "name": "Katadata Finansial",
+    "category": "finance",
+    "url": "https://katadata.co.id/rss/finansial",
+    "parser": "rss"
+  },
+  {
+    "id": "emitennews-emiten",
+    "name": "EmitenNews Emiten",
+    "category": "market",
+    "url": "https://emitennews.com/category/emiten",
+    "parser": "emitennews-category",
+    "pagination": "html-next-link",
+    "requiresKeywordMatch": false
+  },
+  {
+    "id": "emitennews-makro",
+    "name": "EmitenNews Makro",
+    "category": "economy",
+    "url": "https://emitennews.com/category/makro",
+    "parser": "emitennews-category",
+    "pagination": "html-next-link",
+    "requiresKeywordMatch": false
+  },
+  {
+    "id": "emitennews-nasional",
+    "name": "EmitenNews Nasional",
+    "category": "economy",
+    "url": "https://emitennews.com/category/nasional",
+    "parser": "emitennews-category",
+    "pagination": "html-next-link",
+    "requiresKeywordMatch": false
+  },
+  {
+    "id": "bisnis-bursa-saham",
+    "name": "Bisnis Bursa Saham",
+    "category": "market",
+    "url": "https://market.bisnis.com/bursa-saham",
+    "parser": "bisnis-category",
+    "pagination": "html-next-link",
+    "requiresKeywordMatch": false
+  },
+  {
+    "id": "investor-corporate-action",
+    "name": "Investor Corporate Action",
+    "category": "market",
+    "url": "https://investor.id/market/corporate-action",
+    "archiveUrl": "https://investor.id/corporate-action/indeks",
+    "parser": "investor-category",
+    "pagination": "path-page",
+    "requiresKeywordMatch": false,
+    "userAgent": "Mozilla/5.0 (compatible; NexaQuantNewsBot/0.1; +local research)"
+  },
+  {
+    "id": "investor-stock",
+    "name": "Investor Stock",
+    "category": "market",
+    "url": "https://investor.id/market/stock",
+    "archiveUrl": "https://investor.id/stock/indeks",
+    "parser": "investor-category",
+    "pagination": "path-page",
+    "requiresKeywordMatch": false,
+    "userAgent": "Mozilla/5.0 (compatible; NexaQuantNewsBot/0.1; +local research)"
+  },
+  {
+    "id": "emitentrust-stock-market",
+    "name": "Emitentrust Stock & Market",
+    "category": "market",
+    "url": "https://emitentrust.com/category/stock-and-market/feed/",
+    "parser": "rss",
+    "pagination": "rss-paged-query",
+    "requiresKeywordMatch": false
+  }
+]

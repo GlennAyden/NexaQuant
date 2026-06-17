@@ -1,0 +1,22 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="720" rx="36" fill="#F7FAFC"/>
+  <rect x="80" y="86" width="1040" height="548" rx="28" fill="#FFFFFF" stroke="#D8E2EE"/>
+  <g transform="translate(150 180)">
+    <rect x="0" y="0" width="184" height="184" rx="38" fill="#071426"/>
+    <path d="M48 124V58L82 124V58" stroke="#F8FAFC" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M118 122C95 122 80 108 80 88C80 66 96 50 120 50C145 50 162 67 162 91C162 110 151 124 134 129" stroke="#2DD4BF" stroke-width="16" stroke-linecap="round"/>
+    <path d="M134 129L160 154" stroke="#2DD4BF" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="42" cy="144" r="5" fill="#2DD4BF"/>
+    <circle cx="72" cy="144" r="5" fill="#2DD4BF"/>
+    <circle cx="102" cy="144" r="5" fill="#2DD4BF"/>
+  </g>
+  <g transform="translate(390 222)">
+    <text x="0" y="70" fill="#071426" font-family="Arial, Helvetica, sans-serif" font-size="78" font-weight="800" letter-spacing="-1">NexaQuant</text>
+    <text x="4" y="122" fill="#48627F" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" letter-spacing="5">STRUCTURE INTELLIGENCE</text>
+    <path d="M8 176H190C226 176 230 132 266 132C307 132 316 218 356 218C394 218 404 160 444 160H644" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/>
+    <path d="M8 176H190C226 176 230 132 266 132C307 132 316 218 356 218C394 218 404 160 444 160H644" stroke="#0F766E" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="266" cy="132" r="10" fill="#2DD4BF" stroke="#FFFFFF" stroke-width="5"/>
+    <circle cx="356" cy="218" r="10" fill="#F97316" stroke="#FFFFFF" stroke-width="5"/>
+    <circle cx="444" cy="160" r="10" fill="#2DD4BF" stroke="#FFFFFF" stroke-width="5"/>
+  </g>
+</svg>

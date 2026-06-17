@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   averageTrueRange,
+  awesomeOscillator,
   closeLocationValue,
   findPivotSwings,
+  movingAverage,
+  relativeStrengthIndex,
   volumeSma,
 } from "@/lib/analysis/indicators";
 import type { Bar } from "@/lib/market/types";
@@ -37,4 +40,48 @@ describe("indicators", () => {
       "low:2026-01-04:109",
     ]);
   });
+
+  it("computes close-based moving average only after enough bars exist", () => {
+    const points = movingAverage(indicatorBars([100, 103, 102, 106, 105, 108]), 5);
+
+    expect(points).toEqual([
+      { time: "2026-02-05", value: 103.2 },
+      { time: "2026-02-06", value: 104.8 },
+    ]);
+  });
+
+  it("computes RSI with Wilder smoothing so momentum panes are reproducible", () => {
+    const points = relativeStrengthIndex(indicatorBars([100, 103, 102, 106, 105, 108]), 3);
+
+    expect(points).toHaveLength(3);
+    expect(points[0]).toMatchObject({ time: "2026-02-04" });
+    expect(points[0].value).toBeCloseTo(87.5, 5);
+    expect(points[1].value).toBeCloseTo(73.68421, 5);
+    expect(points[2].value).toBeCloseTo(84.61538, 5);
+  });
+
+  it("computes awesome oscillator from fast and slow median-price averages", () => {
+    const medianPrices = [10, 12, 14, 16, 18];
+    const points = awesomeOscillator(indicatorBars(medianPrices), 2, 4);
+
+    expect(points).toEqual([
+      { time: "2026-02-04", value: 2 },
+      { time: "2026-02-05", value: 2 },
+    ]);
+  });
 });
+
+function indicatorBars(values: number[]): Bar[] {
+  return values.map((value, index) => ({
+    symbol: "TEST.JK",
+    timeframe: "1d",
+    date: `2026-02-${String(index + 1).padStart(2, "0")}`,
+    open: value,
+    high: value + 1,
+    low: value - 1,
+    close: value,
+    adjClose: value,
+    volume: 1000 + index * 100,
+    source: "fixture",
+  }));
+}

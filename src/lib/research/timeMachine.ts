@@ -101,6 +101,19 @@ export function buildRecalculatedTimeMachineSnapshot(
   };
 }
 
+export function buildTimeMachineNarrative(snapshot: TimeMachineSnapshot): string[] {
+  if (!snapshot.asOfDate) {
+    return ["No time machine evidence is visible yet."];
+  }
+
+  const latest = snapshot.activeEvents[0];
+  return [
+    `As of ${snapshot.asOfDate}, ${snapshot.visibleBars.length} bars are visible in ${snapshot.calculationMode} mode.`,
+    `${snapshot.activeEvents.length} active structure events are visible; ${snapshot.hiddenAnnotationCount} future annotations remain hidden.`,
+    latest ? `Latest evidence: ${latest.type}.` : "Latest evidence: no structure event yet.",
+  ];
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
